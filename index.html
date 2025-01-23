@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créations Dupdup - Générateur de cartes Dobble</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #add8e6; /* Bleu clair */
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #ffffff;
+      text-shadow: 2px 2px 0px #000000; /* Ombre pour effet pop */
+      margin-top: 20px;
+    }
+    .wave {
+      background-color: #ffd700; /* Jaune pour la vague */
+      height: 30px;
+      border-radius: 50% 50% 0 0;
+      transform: rotate(180deg);
+      margin: 0 auto 20px auto;
+    }
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      padding: 20px;
+    }
+    .card {
+      width: 250px;
+      height: 250px;
+      border: 4px solid #ffffff;
+      border-radius: 20px;
+      position: relative;
+      background: linear-gradient(135deg, #ffffff, #f9f9f9);
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+    }
+    .symbol {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.8);
+      transform-origin: center;
+    }
+    .actions {
+      margin-top: 20px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      border-radius: 25px;
+      background-color: #ffd700;
+      color: #000000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+    }
+    input[type="range"] {
+      width: 300px;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 1rem;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Créations Dupdup</h1>
+  <div class="wave"></div>
+
+  <div class="actions">
+    <button onclick="generateCards()">Générer des cartes</button>
+    <button onclick="downloadCardsAsPDF()">Télécharger en PDF</button>
+  </div>
+  
+  <div class="slider-container">
+    <div class="slider-label">
+      <label for="minSize">Taille minimale des émojis :</label>
+      <span id="minSizeValue">30</span> px
+    </div>
+    <input type="range" id="minSize" min="10" max="70" value="30" oninput="updatePreview()">
+    
+    <div class="slider-label">
+      <label for="maxSize">Taille maximale des émojis :</label>
+      <span id="maxSizeValue">70</span> px
+    </div>
+    <input type="range" id="maxSize" min="40" max="120" value="70" oninput="updatePreview()">
+  </div>
+
+  <div class="card-container" id="cardContainer"></div>
+
+  <script>
+    const emojiList = [
+      "🍓", "🍕", "🍔", "🌵", "🐱", "🐟", "🎸", "🎨", "📱", "🚗", 
+      "🍦", "🥑", "🦄", "🌙", "🔥", "🎶", "💻", "🐻", "🍩", "🏀", 
+      "🌈", "🍿", "🥂", "🍹", "🎁", "🏞️", "🚀", "🎧", "👑", "⚽", 
+      "📚", "🎂", "🍪", "🌻", "🎀", "🐶", "🍇", "🌎", "🍉", "🎤",
+      "🎯", "🍋", "🎹", "🐾", "🪐", "🛴", "🦋", "🍫", "🐨", "🍒",
+      "🌴", "🚲", "🎮", "⚡", "⭐", "🌟", "☕"
+    ];
+    const numSymbolsPerCard = 8;
+    const totalCards = 55;
+
+    function generateDobbleCards() {
+      const n = numSymbolsPerCard - 1;
+      const totalSymbols = n * n + n + 1;
+      const symbols = emojiList.slice(0, totalSymbols);
+      const cards = [];
+
+      for (let i = 0; i <= n; i++) {
+        const card = [symbols[0]];
+        for (let j = 0; j < n; j++) {
+          card.push(symbols[1 + i * n + j]);
+        }
+        cards.push(card);
+      }
+
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          const card = [symbols[1 + i]];
+          for (let k = 0; k < n; k++) {
+            const index = 1 + n + k * n + ((i * k + j) % n);
+            card.push(symbols[index]);
+          }
+          cards.push(card);
+        }
+      }
+
+      return cards.slice(0, totalCards);
+    }
+
+    function positionSymbols(cardDiv, card) {
+      const cardSize = 250;
+      const margin = 20;
+      const minSize = parseInt(document.getElementById("minSize").value, 10);
+      const maxSize = parseInt(document.getElementById("maxSize").value, 10);
+
+      const positions = [];
+
+      card.forEach((symbol) => {
+        let isValidPosition = false;
+        let x, y, size;
+
+        while (!isValidPosition) {
+          size = Math.random() * (maxSize - minSize) + minSize;
+          x = margin + Math.random() * (cardSize - 2 * margin - size);
+          y = margin + Math.random() * (cardSize - 2 * margin - size);
+
+          isValidPosition = positions.every(pos => {
+            const distance = Math.sqrt(Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2));
+            return distance > (pos.size + size) / 2 + 10;
+          });
+        }
+
+        positions.push({ x, y, size });
+
+        const rotation = Math.random() * 360;
+        const symbolDiv = document.createElement("div");
+        symbolDiv.className = "symbol";
+        symbolDiv.textContent = symbol;
+        Object.assign(symbolDiv.style, {
+          fontSize: `${size}px`,
+          left: `${x}px`,
+          top: `${y}px`,
+          width: `${size}px`,
+          height: `${size}px`,
+          transform: `rotate(${rotation}deg)`,
+        });
+
+        cardDiv.appendChild(symbolDiv);
+      });
+    }
+
+    function generateCards() {
+      const cardContainer = document.getElementById("cardContainer");
+      cardContainer.innerHTML = "";
+
+      const cards = generateDobbleCards();
+      cards.forEach((card, index) => {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "card";
+        positionSymbols(cardDiv, card);
+        cardContainer.appendChild(cardDiv);
+      });
+    }
+
+    async function downloadCardsAsPDF() {
+      const cardContainer = document.getElementById("cardContainer");
+      const cards = cardContainer.querySelectorAll(".card");
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("portrait", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const cardWidth = 70;
+      const cardHeight = 70;
+      const margin = 10;
+      const cardsPerRow = Math.floor((pageWidth - margin) / (cardWidth + margin));
+      const cardsPerCol = Math.floor((pageHeight - margin) / (cardHeight + margin));
+      const cardsPerPage = cardsPerRow * cardsPerCol;
+
+      let currentCardIndex = 0;
+
+      for (let i = 0; i < cards.length; i++) {
+        const canvas = await html2canvas(cards[i], { scale: 2 });
+        const imgData = canvas.toDataURL("image/png");
+
+        const row = Math.floor(currentCardIndex / cardsPerRow) % cardsPerCol;
+        const col = currentCardIndex % cardsPerRow;
+        const x = margin + col * (cardWidth + margin);
+        const y = margin + row * (cardHeight + margin);
+
+        pdf.addImage(imgData, "PNG", x, y, cardWidth, cardHeight);
+        currentCardIndex++;
+
+        if (currentCardIndex % cardsPerPage === 0 && currentCardIndex < cards.length) {
+          pdf.addPage();
+        }
+      }
+
+      pdf.save("dobble_cards.pdf");
+    }
+
+    function updatePreview() {
+      const minSize = document.getElementById("minSize").value;
+      const maxSize = document.getElementById("maxSize").value;
+      document.getElementById("minSizeValue").textContent = minSize;
+      document.getElementById("maxSizeValue").textContent = maxSize;
+
+      generateCards();
+    }
+
+    document.addEventListener("DOMContentLoaded", updatePreview);
+  </script>
+</body>
+</html>
