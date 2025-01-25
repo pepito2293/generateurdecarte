@@ -305,12 +305,16 @@
       pdf.save("dobble_cards.pdf");
     }
 
+    let debounceTimeout;
     function updatePreview() {
       const minSize = document.getElementById("minSize").value;
       const maxSize = document.getElementById("maxSize").value;
       document.getElementById("minSizeValue").textContent = minSize;
       document.getElementById("maxSizeValue").textContent = maxSize;
-
+      
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(generateCards, 300); // Délai de 300 ms
+  }
       generateCards();
     }
 
