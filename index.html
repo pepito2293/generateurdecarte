@@ -304,18 +304,21 @@
 
       pdf.save("dobble_cards.pdf");
     }
+    
+<script>
+  let debounceTimeout;
+  function updatePreview() {
+    const minSize = document.getElementById("minSize").value;
+    const maxSize = document.getElementById("maxSize").value;
+    document.getElementById("minSizeValue").textContent = minSize;
+    document.getElementById("maxSizeValue").textContent = maxSize;
 
-    function updatePreview() {
-      const minSize = document.getElementById("minSize").value;
-      const maxSize = document.getElementById("maxSize").value;
-      document.getElementById("minSizeValue").textContent = minSize;
-      document.getElementById("maxSizeValue").textContent = maxSize;
-      
-      generateCards();
-    }
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(generateCards, 300); // Délai de 300 ms
+  }
 
-    document.addEventListener("DOMContentLoaded", updatePreview);
-  </script>
+  document.addEventListener("DOMContentLoaded", updatePreview);
+</script>
 
 <script>
   let activeSymbol = null; // Variable pour suivre l'émoji actif
